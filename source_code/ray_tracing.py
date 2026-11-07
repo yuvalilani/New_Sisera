@@ -10,7 +10,7 @@ class PathSection:
     entry_angle: float
 
 
-class Model:
+class RayTracer:
     def __init__(self, file_path: str):
         self.file_path = file_path
         # Load the OBJ file and convert all polygons into triangles

@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from source_code.physics import Model, PathSection
+from source_code.ray_tracing import Model, PathSection
 
 
 class TestGetPathSections(unittest.TestCase):
