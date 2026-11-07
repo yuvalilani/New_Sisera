@@ -206,6 +206,8 @@ class RayTracer:
     def _ensure_plotter(self) -> pv.Plotter:
         """Initialize the PyVista Plotter and add all model submeshes if not already created."""
         if self.plotter is None:
+            pv._vtk.vtkContextInteractorStyle = pv._vtk.vtkInteractorStyleTrackballCamera
+            pv._vtk.vtkResliceCursorPicker = pv._vtk.vtkWorldPointPicker
             palette = ["#89b4fa", "#f38ba8", "#a6e3a1", "#f9e2af", "#cba6f7", "#fab387", "#94e2d5", "#f5c2e7", "#74c7ec", "#b4befe"]
             self.plotter = pv.Plotter(window_size=[1200, 800], title=self.file_path.split(".")[0])
             self.plotter.set_background("#1e1e2e", top="#313244")
@@ -235,7 +237,6 @@ class RayTracer:
         plotter = self._ensure_plotter()
         plotter.add_legend(bcolor=(0.12, 0.12, 0.18, 0.8), border=True, size=(0.18, 0.25))
         plotter.show_bounds(grid="back", location="outer", ticks="both", color="white", xtitle="X", ytitle="Y", ztitle="Z")
-        plotter.add_axes()
         plotter.enable_anti_aliasing("msaa")
         plotter.show()
         self.plotter = None
