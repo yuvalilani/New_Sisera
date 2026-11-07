@@ -1,16 +1,16 @@
 import unittest
 import numpy as np
-from source_code.ray_tracing import Model, PathSection
+from source_code.ray_tracing import RayTracer, PathSection
 
 
 class TestGetPathSections(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.wall = Model("tests/models/wall.obj")
-        cls.double_wall = Model("tests/models/double_wall.obj")
-        cls.layered_wall = Model("tests/models/layered_wall.obj")
-        cls.nested_box = Model("tests/models/nested_box.obj")
-        cls.houses = Model("tests/models/houses_and_people.obj")
+        cls.wall = RayTracer("tests/models/wall.obj")
+        cls.double_wall = RayTracer("tests/models/double_wall.obj")
+        cls.layered_wall = RayTracer("tests/models/layered_wall.obj")
+        cls.nested_box = RayTracer("tests/models/nested_box.obj")
+        cls.houses = RayTracer("tests/models/houses_and_people.obj")
 
     def assertSectionsMatch(self, actual: list[PathSection], expected: list[tuple[float, str, float]], places: int = 4):
         self.assertEqual(len(actual), len(expected), f"Expected {len(expected)} sections, got {len(actual)}: {actual}")
@@ -89,6 +89,16 @@ class TestGetPathSections(unittest.TestCase):
         sections = self.wall.get_path_sections([0.0, -0.2, 1.5], [0.0, 0.2, 1.5])
         self.assertSectionsMatch(sections, [(0.4, "Concrete", 0.0)])
 
+    def test_start_on_boundary_and_exit_into_air(self):
+        # Start directly on the entry boundary (y = -0.2) and continue out past the back boundary (y = 0.2) into Air (y = 2.0)
+        sections = self.wall.get_path_sections([0.0, -0.2, 1.5], [0.0, 2.0, 1.5])
+        self.assertSectionsMatch(sections, [(0.4, "Concrete", 0.0), (1.8, "Air", 0.0)])
+
+    def test_start_on_boundary_corner_vertex_and_exit(self):
+        # Start directly on a corner vertex (-5.0, -0.2, 0.0) of the wall and pass through to (0.0, 2.0, 1.5)
+        sections = self.wall.get_path_sections([-5.0, -0.2, 0.0], [0.0, 2.0, 1.5])
+        self.assertEqual([s.object_name for s in sections], ["Concrete", "Air"])
+
     def test_multiple_separated_layers(self):
         # Pass through Concrete wall ([-2, -1]), Air gap ([-1, 1]), and Steel wall ([1, 2])
         sections = self.double_wall.get_path_sections([0.0, -3.0, 1.5], [0.0, 3.0, 1.5])
@@ -156,6 +166,14 @@ class TestGetPathSections(unittest.TestCase):
         total_len = sum(s.length for s in sections)
         self.assertAlmostEqual(total_len, float(np.linalg.norm(p1 - p0)), places=4)
         self.assertSectionsMatch(sections, [(5.0, "Air", 0.0), (0.2, "Concrete", 0.0), (3.7, "Air", 0.0), (0.2, "Concrete", 0.0), (6.8, "Air", 0.0), (0.2, "Concrete", 0.0), (8.9, "Air", 0.0)])
+
+    def test_houses_corner_start_diagonal_to_person(self):
+        # Ray starting at building corner [0, 0, 0] and ending inside Person_2 at [14, 1, 9]
+        p0 = np.array([0.0, 0.0, 0.0])
+        p1 = np.array([14.0, 1.0, 9.0])
+        sections = self.houses.get_path_sections(p0, p1)
+        self.assertEqual([s.object_name for s in sections], ["Concrete", "Air", "Concrete", "Air", "Concrete", "Air", "Concrete", "Air", "Concrete", "Air", "Person_2"])
+        self.assertAlmostEqual(sum(s.length for s in sections), float(np.linalg.norm(p1 - p0)), places=4)
 
     def test_separate_people_boxes_in_houses_model(self):
         # Ray passing vertically from z=4.0 to z=10.0 at (x=13.94, y=0.91) hits Person_1 (z in [4.75, 5.75]), Concrete floor (z in [7.4, 7.6]), and Person_2 (z in [8.27, 9.27])
